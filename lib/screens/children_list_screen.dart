@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:kids_points_tracker/screens/child_detail_screen.dart';
 
 class ChildrenListScreen extends StatelessWidget {
   @override
@@ -43,6 +44,16 @@ class ChildrenListScreen extends StatelessWidget {
               final child = docs[index];
               return ListTile(
                 title: Text(child['name']),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ChildDetailScreen(
+                        childId: child.id,
+                        childName: child['name'],
+                      ),
+                    ),
+                  );
+                },
                 trailing: IconButton(
                   icon: Icon(Icons.share),
                   onPressed: () async {
