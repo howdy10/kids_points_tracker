@@ -2,6 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+// HACK: We are storing users in a Firestore collection called 'users' with their email and uid.
+// This is a workaround because the Firebase Auth SDK does not provide a direct way to look up users by email.
+// WARNING: This approach is insecure as it exposes sensitive operations to the client-side,
+// making it vulnerable to malicious actors. It violates best practices for handling sensitive data.
+// RECOMMENDATION: Use Firebase Cloud Functions to securely perform server-side operations,
+// such as looking up users by email, and ensure proper authentication and authorization checks.
+Future<void> saveUserToFirestore(User user) async {
+  if (user.email == null)
+    return; // Defensive: email-less users shouldn't exist here
+  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+    'email': user.email,
+    'uid': user.uid,
+    // Add more profile fields as needed
+  }, SetOptions(merge: true));
+}
 
 class AuthScreen extends StatefulWidget {
   @override
@@ -21,6 +38,8 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      final user = FirebaseAuth.instance.currentUser!;
+      await saveUserToFirestore(user);
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     }
@@ -33,6 +52,8 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      final user = FirebaseAuth.instance.currentUser!;
+      await saveUserToFirestore(user);
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     }
@@ -50,6 +71,7 @@ class _AuthScreenState extends State<AuthScreen> {
         idToken: googleAuth.idToken,
       );
       await _auth.signInWithCredential(credential);
+      await saveUserToFirestore(FirebaseAuth.instance.currentUser!);
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     }
@@ -69,6 +91,7 @@ class _AuthScreenState extends State<AuthScreen> {
         accessToken: appleCredential.authorizationCode,
       );
       await _auth.signInWithCredential(oauthCredential);
+      await saveUserToFirestore(FirebaseAuth.instance.currentUser!);
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     }
@@ -104,7 +127,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 onPressed: _signInWithApple,
                 child: Text('Sign in with Apple'),
               ),
-
             ElevatedButton(
               onPressed: _signUpWithEmail,
               child: Text('Sign up with Email'),
