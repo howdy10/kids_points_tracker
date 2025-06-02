@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>819671179695-nu46ft51fj0v4fgos8a97ab15t7i1amq.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.819671179695-nu46ft51fj0v4fgos8a97ab15t7i1amq</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCNMvhnCslkJgiiy-aYwCxKi0BjV39-YlM</string>
+	<key>GCM_SENDER_ID</key>
+	<string>819671179695</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.kidsPointsTracker</string>
+	<key>PROJECT_ID</key>
+	<string>kids-point-tracker</string>
+	<key>STORAGE_BUCKET</key>
+	<string>kids-point-tracker.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:819671179695:ios:c938758f7ca1b2a8a88f5a</string>
+</dict>
+</plist>

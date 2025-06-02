@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "819671179695",
+    "project_id": "kids-point-tracker",
+    "storage_bucket": "kids-point-tracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:819671179695:android:5ea604d9b0965f2aa88f5a",
+        "android_client_info": {
+          "package_name": "com.example.kids_points_tracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "819671179695-6ikrggn3pnh3k9g8a2as34m47s9uc7pc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNGM5thOXSI0_CtmP-6uIwfN6YjcYR110"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "819671179695-6ikrggn3pnh3k9g8a2as34m47s9uc7pc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "819671179695-nu46ft51fj0v4fgos8a97ab15t7i1amq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.kidsPointsTracker"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
