@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'screens/signup_screen.dart';
+import 'widgets/prompt_first_name.dart';
 
 // HACK: We are storing users in a Firestore collection called 'users' with their email and uid.
 // This is a workaround because the Firebase Auth SDK does not provide a direct way to look up users by email.
@@ -10,12 +12,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // making it vulnerable to malicious actors. It violates best practices for handling sensitive data.
 // RECOMMENDATION: Use Firebase Cloud Functions to securely perform server-side operations,
 // such as looking up users by email, and ensure proper authentication and authorization checks.
-Future<void> saveUserToFirestore(User user) async {
+Future<void> saveUserToFirestore(User user, String firstName) async {
   if (user.email == null)
     return; // Defensive: email-less users shouldn't exist here
   await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
     'email': user.email,
     'uid': user.uid,
+    'firstName': firstName,
     // Add more profile fields as needed
   }, SetOptions(merge: true));
 }
@@ -38,22 +41,6 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      final user = FirebaseAuth.instance.currentUser!;
-      await saveUserToFirestore(user);
-    } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message);
-    }
-  }
-
-  Future<void> _signUpWithEmail() async {
-    setState(() => _error = null);
-    try {
-      await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      final user = FirebaseAuth.instance.currentUser!;
-      await saveUserToFirestore(user);
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     }
@@ -70,8 +57,38 @@ class _AuthScreenState extends State<AuthScreen> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      await _auth.signInWithCredential(credential);
-      await saveUserToFirestore(FirebaseAuth.instance.currentUser!);
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+      if (user == null) return;
+
+      // Try to get first name
+      String? firstName;
+      final displayName = user.displayName ?? googleUser.displayName;
+      if (displayName != null && displayName.isNotEmpty) {
+        firstName = displayName.split(' ').first;
+      }
+
+      // Check if Firestore user doc exists/has firstName
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (userDoc.exists &&
+          (userDoc.data()?['firstName'] as String?)?.isNotEmpty == true) {
+        // Already have a name, nothing else to do
+        return;
+      }
+
+      firstName = firstName ?? await promptForFirstName(context);
+      if (firstName == null || firstName.isEmpty) {
+        return;
+      }
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'email': user.email,
+        'firstName': firstName,
+      }, SetOptions(merge: true));
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     }
@@ -90,8 +107,27 @@ class _AuthScreenState extends State<AuthScreen> {
         idToken: appleCredential.identityToken,
         accessToken: appleCredential.authorizationCode,
       );
-      await _auth.signInWithCredential(oauthCredential);
-      await saveUserToFirestore(FirebaseAuth.instance.currentUser!);
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
+      final user = userCredential.user;
+      if (user == null) return;
+
+      // Apple provides name only on first sign-in
+      String? firstName = appleCredential.givenName;
+      if (firstName == null || firstName.isEmpty) {
+        // Try to get from Firestore, else prompt
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        firstName =
+            userDoc.data()?['firstName'] ?? await promptForFirstName(context);
+      }
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'email': user.email,
+        'firstName': firstName,
+      }, SetOptions(merge: true));
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     }
@@ -127,9 +163,13 @@ class _AuthScreenState extends State<AuthScreen> {
                 onPressed: _signInWithApple,
                 child: Text('Sign in with Apple'),
               ),
-            ElevatedButton(
-              onPressed: _signUpWithEmail,
-              child: Text('Sign up with Email'),
+            TextButton(
+              onPressed: () {
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (context) => SignUpScreen()));
+              },
+              child: Text('Don\'t have an account? Sign Up'),
             ),
             if (_error != null)
               Text(_error!, style: TextStyle(color: Colors.red)),

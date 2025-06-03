@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kids_points_tracker/screens/child_detail_screen.dart';
+import 'profile_screen.dart';
 
 class ChildrenListScreen extends StatelessWidget {
   @override
@@ -17,6 +18,14 @@ class ChildrenListScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Your Children'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.account_circle),
+            onPressed: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (context) => ProfileScreen()));
+            },
+          ),
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: () async {
