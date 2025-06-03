@@ -5,6 +5,25 @@ import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'points_history_paginated.dart';
 
+Future<Map<String, String>> fetchFirstNames(Set<String> uids) async {
+  if (uids.isEmpty) return {};
+  final List<String> uidList = uids.toList();
+  List<DocumentSnapshot> userDocs = [];
+  // Firestore whereIn only allows 10 items at a time
+  for (var i = 0; i < uidList.length; i += 10) {
+    final chunk = uidList.sublist(
+      i,
+      i + 10 > uidList.length ? uidList.length : i + 10,
+    );
+    final usersQuery = await FirebaseFirestore.instance
+        .collection('users')
+        .where(FieldPath.documentId, whereIn: chunk)
+        .get();
+    userDocs.addAll(usersQuery.docs);
+  }
+  return {for (var doc in userDocs) doc.id: doc['firstName'] ?? 'Unknown'};
+}
+
 class ChildDetailScreen extends StatefulWidget {
   final String childId;
   final String childName;
@@ -266,29 +285,50 @@ class TodayPointsView extends StatelessWidget {
                 .limit(20)
                 .snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData)
+              if (!snapshot.hasData) {
                 return Center(child: CircularProgressIndicator());
+              }
               final logs = snapshot.data!.docs;
               if (logs.isEmpty) return Center(child: Text('No activity yet.'));
-              return ListView.builder(
-                itemCount: logs.length,
-                itemBuilder: (context, index) {
-                  final log = logs[index];
-                  final action = log['action'] as String;
-                  final points = log['points'] as int;
-                  final reason = log['reason'] as String;
-                  final timestamp = (log['timestamp'] as Timestamp).toDate();
-                  return ListTile(
-                    leading: Icon(
-                      action == 'add' ? Icons.add : Icons.remove,
-                      color: action == 'add' ? Colors.green : Colors.red,
-                    ),
-                    title: Text('${action == 'add' ? '+' : '-'}$points'),
-                    subtitle: Text(reason),
-                    trailing: Text(
-                      '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+
+              // Collect UIDs from logs
+              final byUids = logs.map((log) => log['byUid'] as String).toSet();
+
+              // Fetch names
+              return FutureBuilder<Map<String, String>>(
+                future: fetchFirstNames(byUids),
+                builder: (context, namesSnap) {
+                  if (!namesSnap.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  final uidToName = namesSnap.data!;
+
+                  return ListView.builder(
+                    itemCount: logs.length,
+                    itemBuilder: (context, index) {
+                      final log = logs[index];
+                      final action = log['action'] as String;
+                      final points = log['points'] as int;
+                      final reason = log['reason'] as String;
+                      final timestamp = (log['timestamp'] as Timestamp)
+                          .toDate();
+                      final givenByUid = log['byUid'];
+                      final firstName = uidToName[givenByUid] ?? 'Unknown';
+
+                      return ListTile(
+                        leading: Icon(
+                          action == 'add' ? Icons.add : Icons.remove,
+                          color: action == 'add' ? Colors.green : Colors.red,
+                        ),
+                        title: Text('${action == 'add' ? '+' : '-'}$points'),
+                        subtitle: Text('$reason • by $firstName'),
+                        trailing: Text(
+                          '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      );
+                    },
                   );
                 },
               );
@@ -315,8 +355,9 @@ class PointsHistoryView extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: logsRef.snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data!.docs;
 
         // Group by date
